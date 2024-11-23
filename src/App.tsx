@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import "./App.css";
-import { getVertexAI, getGenerativeModel } from "firebase/vertexai-preview";
+import { getVertexAI, getGenerativeModel } from "firebase/vertexai";
 import { app } from "./firebase";
 
 interface Message {
@@ -12,18 +12,17 @@ function App() {
   const vertexAI = getVertexAI(app);
   const model = getGenerativeModel(vertexAI, { model: "gemini-1.5-pro" });
 
-  const generatePrompt = async (prompt: string): Promise<string> => {
-    const result = await model.generateContent(prompt);
-
-    const response = result.response;
-    const text = response.text();
-    console.log(text);
-    return text;
-  };
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [userInput, setUserInput] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+
+  const generatePrompt = async (prompt: string): Promise<string> => {
+    setLoading(true);
+    const result = await model.generateContent(prompt);
+    setLoading(false);
+    return result.response.text();
+  };
 
   const scrollToBottom = () => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,14 +35,11 @@ function App() {
         { type: "user", text: userInput },
       ]);
       setUserInput("");
-
       const text = await generatePrompt(userInput);
-
       setMessages((prevMessages) => [
         ...prevMessages,
         { type: "chatgpt", text },
       ]);
-      console.log(messages);
     }
   };
 
@@ -75,6 +71,9 @@ function App() {
             </div>
           ))}
           <div ref={messageEndRef} />
+          {loading && (
+            <div className="loading-indicator">Loading...</div>
+          )}
         </div>
         <div className='chat-input'>
           <input
@@ -91,4 +90,3 @@ function App() {
 }
 
 export default App;
-
